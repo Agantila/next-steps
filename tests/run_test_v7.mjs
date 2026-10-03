@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-const PLUGIN_PATH = '/home/deniz/.hermes/desktop-plugins/next-steps/plugin.js'
+const PLUGIN_PATH = process.env.NS_PLUGIN_PATH || new URL('../plugin.js', import.meta.url)
 
 function makeAtom(value) {
   let current = value
