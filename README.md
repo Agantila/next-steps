@@ -6,6 +6,8 @@ pro-Session-State. Läuft komplett lokal gegen einen Ollama-Endpoint.
 
 **Status:** v11, produktiv im Einsatz (`~/.hermes/desktop-plugins/next-steps/plugin.js`).
 
+**Entwickler & Lizenzinhaber:** AGANTILA (agantila.com) — Deniz Yilmaz · **Lizenz:** MIT (Open Source)
+
 ---
 
 ## Schnellstart
@@ -39,8 +41,10 @@ node tests/run_test_v7.mjs    # Atoms-Vertrag: register() erzeugt keine Zwilling
 node tests/run_test_v6.mjs    # Modell-Quellen, Kapazitätsprofile, echter Ollama-Call
 ```
 
-Der Lauf der jeweils neuesten Version (`v11`, `v10`, `v9`, `v9b`) muss grün sein, bevor ein
-Release-stand in `~/.hermes/desktop-plugins/next-steps/` aktualisiert wird.
+Die Harnesses lesen standardmäßig die Repo-Kopie des Plugins (portabel, CI-fähig). Mit
+`NS_PLUGIN_PATH=/pfad/plugin.js npm test` lässt sich gezielt eine andere Kopie prüfen. Der Lauf
+der jeweils neuesten Version (`v11`, `v10`, `v9`, `v9b`) muss grün sein, bevor ein Release-Stand
+in `~/.hermes/desktop-plugins/next-steps/` aktualisiert wird.
 
 ---
 
@@ -145,8 +149,14 @@ Die Schritt-Sprache im Prompt folgt derselben Wahl.
 - `plugin.js` — das komplette Plugin (eine Datei, Plain-ESM, kein Build)
 - `tests/run_test_v*.mjs` — Harnesses pro Feature-Release (v6–v11)
 - `README.md` · `CHANGELOG.md` · `DEVELOPMENT.md` — Überblick · Versionshistorie · Fallstricke
-- `LICENSE` — MIT
+- `CONTRIBUTING.md` · `CODE_OF_CONDUCT.md` · `SECURITY.md` · `.github/` — Mitwirken, Verhaltenskodex, Sicherheit, CI & Templates
+- `LICENSE` — MIT (Agantila.com — Deniz Yilmaz)
+
+## Mitwirken
+
+Beiträge willkommen — siehe [CONTRIBUTING.md](./CONTRIBUTING.md). Kurzfassung: `npm run check`
+und `npm test` grün, CHANGELOG-Eintrag ergänzen, ein Feature = ein Test-Harness.
 
 ## Lizenz
 
-MIT © 2026 Deniz — siehe [LICENSE](./LICENSE).
+MIT © 2026 Agantila.com — Deniz Yilmaz (AGANTILA). Open Source — siehe [LICENSE](./LICENSE).

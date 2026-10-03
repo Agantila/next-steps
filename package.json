@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "license": "MIT",
+  "author": "Deniz Yilmaz (AGANTILA) <hallo@agantila.com> (https://agantila.com)",
+  "homepage": "https://agantila.com",
+  "keywords": ["hermes", "hermes-desktop", "plugin", "ollama", "next-steps"],
   "description": "Session-prediction plugin for Hermes Desktop — local Ollama, per-session state, target routing (session/bot/kanban), tiny-model support, EN/DE.",
   "type": "module",
   "scripts": {
