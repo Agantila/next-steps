@@ -1,3 +1,18 @@
+# Dependencies
 node_modules/
+
+# Logs & temp
 *.log
+tmp/
+
+# Build/Test-Artefakte
+coverage/
+*.tgz
+
+# Editor/OS
 .DS_Store
+.idea/
+.vscode/
+
+# Lokal
+.env
