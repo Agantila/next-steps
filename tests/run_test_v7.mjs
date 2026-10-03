@@ -57,6 +57,7 @@ const { host: h, makeAtom: mkAtom } = globalThis.__SP_TEST__
 export const host = h
 export const atom = mkAtom
 export const Tip = p => p?.children ?? null
+export const Codicon = () => null
 export const useValue = a => a.get()
 export const APPEARANCE_AREAS = { extra: 'appearance.extra' }
 export const COMPOSER_AREAS = { underside: 'composer.underside' }

@@ -1,6 +1,53 @@
 CHANGELOG — next-steps-plugin
 ==============================
 
+v11 (2026-10-03)
+  FIX: „Neuer Tab“ erzeugte keine Session — zwei API-Fehler: openSession
+       erwartet die STORED Session-ID (nicht die Runtime-ID aus session_id),
+       und der Turn muss per prompt.submit laufen (composer.submit erreicht
+       nur gemountete Composer-Surfaces; frische Sessions haben keine).
+       Jetzt kanonisch wie App/Bots: session.create → openSession(stored) →
+       prompt.submit(runtime) → Retry-Open, falls der erste Open an der
+       lazy Row scheitert. Bot-Ziel: dasselbe Muster. create trägt cwd.
+  FEAT: „Senden an“-Icon — der Button am Chip-Ende trägt jetzt das Codicon
+        `send` (Sende-Pfeil) statt des missverständlichen ⌖-Zielkreuzes.
+  FEAT: Session-Kontext beim Senden — Schritte an andere Ziele (neuer Tab,
+        Bot, Kanban) bekommen eine Kurzfassung mit: Arbeitsverzeichnis + die
+        letzten 6 Nachrichten (+ „Aufgabe: …“). Abschaltbar im Tab „Ziele“
+        (Default an). Die aktuelle Session braucht keinen Anhang.
+  FIX: Kanban-Ziel nutzte das ungültige Verb „kanban add“ (nur usage error!)
+        — jetzt `kanban create "<Titel>" --body "<Kontext>"` über den echten
+        Kanban-CLI-Parser; Fehlausgaben werden erkannt und lösen den
+        Clipboard-Fallback aus.
+
+v10 (2026-10-03)
+  FEAT: „Neu generieren“-Button (⟳, Icon-only) in der Vorschlagsleiste —
+        führt die Vorhersage-Anfrage erneut aus und ersetzt die Vorschläge
+        durch frische; Busy-Spin während des Calls. Manuelle Trigger (⟳,
+        StatusChip, Einstellungsseite) laufen auch während der Agent arbeitet
+        (force); nur der eigene laufende Call schützt vor Doppelklick.
+  FEAT: Start/Stop-Button (⏸/▶) links vom Options-Chip — pausiert die
+        automatische Generierung (nach Agent-Antworten), dimmt die Step-Chips;
+        vorhandene Chips bleiben nutzbar, der manuelle ⟳-Klick generiert
+        weiterhin. Global + persistent; Schalter auch im Options-Popover
+        (Tab Ausrichtung) mit Erklärtext.
+  FEAT: Neue Ausrichtung „Methodik & Best Practices“ (methodik) — Methoden-
+        Linse für beste weitere Aktionen nach anerkannten Verfahren
+        (Checklisten, Reviews, Benchmark gegen Referenzlösungen,
+        Hypothesen-Experimente, Lernschleifen).
+  FEAT: i18n-Feinschliff — „(gespeichert)“ im Modell-Select und die Modell-
+        Reset-Fehlermeldung laufen über den neuen Non-React-Übersetzer tr()
+        (aktuelle Plugin-Sprache; inherit → App-Locale de/en).
+  FIX: Vorschlags-Chips wurden NIE angezeigt — der Pro-Session-State wird
+       unter der stored Session-ID geschrieben (sessionKey), aber unter der
+       Runtime-ID gelesen. Suggestions + OptionsBody lesen jetzt über den
+       Persistenz-Key (das Options-Popover zeigt damit auch endlich
+       Ausrichtung/Stil/Ziel der Session statt der Defaults).
+  FIX: Step-Chip ohne Text gerendert (sp-label hatte kein children).
+  FIX: Busy-Anzeige konsistent über sessionKey (RefreshChip + StatusChip).
+  TEST: run_test_v10.mjs (Klick → erneuter /api/chat-Call → Chips ersetzt;
+        Runtime-ID ≠ stored-ID; force bei agentBusy; Doppelklick-Schutz).
+
 v9 (2026-10-03)
   FIX: Tab-Überschriften zeigten Raw-Keys („tab_focus") — tabLabel() baute
        tab_Focus/tab_Model, Bundles definieren tabFocus/tabModel. Jetzt direkte

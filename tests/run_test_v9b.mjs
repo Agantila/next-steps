@@ -37,6 +37,7 @@ const sdk = [
   'export const atom = mk',
   'function rc(c) { if (typeof c === "function") return rc(c()); if (Array.isArray(c)) return c.map(rc); if (c && typeof c === "object") { if (c.children !== undefined) return rc(c.children); return null } return c }',
   'export const Tip = p => p && p.children !== undefined ? rc(p.children) : null',
+  'export const Codicon = () => null',
   'export const useValue = a => a.get()',
   "export const APPEARANCE_AREAS = { extra: 'appearance.extra' }",
   "export const COMPOSER_AREAS = { underside: 'composer.underside' }",

@@ -2,11 +2,12 @@
   "name": "next-steps-plugin",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "description": "Session-prediction plugin for Hermes Desktop — local Ollama, per-session state, target routing (session/bot/kanban), tiny-model support, EN/DE.",
   "type": "module",
   "scripts": {
-    "test": "node tests/run_test_v9.mjs && node tests/run_test_v9b.mjs && node tests/run_test_v7.mjs",
-    "test:full": "node tests/run_test_v6.mjs && node tests/run_test_v7.mjs && node tests/run_test_v9.mjs && node tests/run_test_v9b.mjs",
+    "test": "node tests/run_test_v11.mjs && node tests/run_test_v10.mjs && node tests/run_test_v9.mjs && node tests/run_test_v9b.mjs && node tests/run_test_v7.mjs",
+    "test:full": "node tests/run_test_v11.mjs && node tests/run_test_v10.mjs && node tests/run_test_v6.mjs && node tests/run_test_v7.mjs && node tests/run_test_v9.mjs && node tests/run_test_v9b.mjs",
     "check": "node --check plugin.js && echo 'plugin.js: SYNTAX OK'",
     "deploy": "mkdir -p ~/.hermes/desktop-plugins/next-steps && cp plugin.js ~/.hermes/desktop-plugins/next-steps/plugin.js && echo 'Deployed. Restart Hermes Desktop or ⌘K → Reload desktop plugins.'"
   }

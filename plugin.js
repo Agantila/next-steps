@@ -29,7 +29,7 @@
  */
 
 import {
-  APPEARANCE_AREAS, atom, COMPOSER_AREAS, DropdownMenu, DropdownMenuContent, DropdownMenuTrigger,
+  APPEARANCE_AREAS, atom, Codicon, COMPOSER_AREAS, DropdownMenu, DropdownMenuContent, DropdownMenuTrigger,
   host, ModelCatalogMenu, ModelMenuCloseContext, Popover, PopoverContent, PopoverTrigger,
   ROUTES_AREA, SIDEBAR_NAV_AREA, Tip, usePluginI18n, useValue
 } from '@hermes/plugin-sdk'
@@ -42,6 +42,7 @@ const PORT_DEFAULT = 11434
 const HISTORY_ROWS = 8
 const DEBOUNCE_MS = 1200
 const MAX_SESSION_STATES = 40 // Speicher-Kappung: nur die 40 zuletzt geschriebenen Sessions
+const HANDOFF_ROWS = 6       // Übergabe-Kurzfassung: letzte N Nachrichten
 
 // --------------------------------------------------------------------------
 // i18n — en + de (Resolution: App-Locale → en → key; Override pro Plugin)
@@ -60,6 +61,7 @@ const STRINGS = {
     cat_ideation: 'Ideation', cat_ideation_hint: 'Creative work. Methods: diverge first (several alternatives, unusual ones too), then converge (criteria, choice), make relationships visible.',
     cat_betrieb: 'Ops & DevOps', cat_betrieb_hint: 'Operations. Methods: stability before novelty, observability (logs/metrics), a rollback path, keep risks small and isolated.',
     cat_research: 'Research & Analysis', cat_research_hint: 'Analysis. Methods: verify sources and counter-sample, criteria before findings, condense the result into a decision memo.',
+    cat_methodik: 'Methods & Best Practices', cat_methodik_hint: 'Best-practice work. Methods: apply established procedures and standards, benchmark against reference solutions, think in checklists and reviews, plan experiments with clear hypotheses, document results and close learning loops.',
     cat_custom: 'Custom',
     sty_auto: 'Auto', sty_auto_hint: 'Pick the fitting kind per step; mix sensibly.',
     sty_sofort: 'Ready to run', sty_sofort_hint: 'Only immediately executable micro-steps (under 2 minutes), phrased imperatively.',
@@ -106,6 +108,16 @@ const STRINGS = {
     botNone: 'No bots found.',
     targetHint: 'Where a chip click goes. The ⌖ icon on each chip picks a one-off destination — this is how work is parallelized across sessions, bots and the board.',
     chipTip: 'Next Steps ({0}) — click: refresh', chipMenu: 'Send to…',
+    refreshLabel: 'Regenerate', refreshTip: 'Run the request again — generate new suggestions',
+    modelSaved: 'saved',
+    notifyModelReset: 'Model “{0}” is not installed in Ollama — reset to {1}.',
+    handoffHead: 'Context (handoff from another Hermes session):',
+    handoffCwd: 'Working directory: {0}',
+    handoffTask: 'Task: {0}',
+    sendCtxLabel: 'Attach session context',
+    sendCtxHint: 'Steps sent to other targets (new tab, bot, board) carry a short handoff — working directory + the last messages — so they stay actionable there. The current session needs no attachment.',
+    pauseTip: 'Pause auto-generation', resumeTip: 'Resume auto-generation',
+    autoLabel: 'Auto-generation', autoHint: 'Paused = no new suggestions after agent answers; existing chips stay dimmed. The ⟳ button still generates manually.',
     predict: 'predict', predictBusy: 'predict…', predictError: 'predict!',
     notifyNoComposer: 'Next Steps: composer unreachable — step not sent.',
     notifySent: 'Next Steps: sent to {0}.',
@@ -129,6 +141,7 @@ const STRINGS = {
     cat_ideation: 'Ideenentwicklung', cat_ideation_hint: 'Kreative Arbeit. Methoden: erst divergent (mehrere Alternativen, auch ungewöhnliche), dann konvergent (Kriterien, Auswahl), Zusammenhänge sichtbar machen.',
     cat_betrieb: 'Betrieb & DevOps', cat_betrieb_hint: 'Betrieb. Methoden: Stabilität vor Neuem, Beobachtbarkeit (Logs/Metriken), Rollback-Pfad, Risiken klein und isoliert halten.',
     cat_research: 'Recherche & Analyse', cat_research_hint: 'Analyse. Methoden: Quellen prüfen und gegenproben, Kriterien vor Befunden, Ergebnis als Entscheidungsvorlage verdichten.',
+    cat_methodik: 'Methodik & Best Practices', cat_methodik_hint: 'Best-Practice-Arbeit. Methoden: bewährte Verfahren und Standards anwenden, gegen Referenzlösungen benchmarken, in Checklisten und Reviews denken, Experimente mit klarer Hypothese planen, Ergebnisse dokumentieren und Lernschleifen schließen.',
     cat_custom: 'Eigene',
     sty_auto: 'Auto', sty_auto_hint: 'Wähle je Schritt die passende Art; mische sinnvoll.',
     sty_sofort: 'Sofort umsetzbar', sty_sofort_hint: 'Nur sofort ausführbare Mikro-Schritte (unter 2 Minuten), imperativ formuliert.',
@@ -175,6 +188,16 @@ const STRINGS = {
     botNone: 'Keine Bots gefunden.',
     targetHint: 'Wohin ein Chip-Klick geht. Das ⌖-Icon an jedem Chip wählt ein einmaliges Ziel — so wird Arbeit über Sessions, Bots und das Board parallelisierbar.',
     chipTip: 'Next Steps ({0}) — Klick: neu laden', chipMenu: 'Senden an…',
+    refreshLabel: 'Neu generieren', refreshTip: 'Anfrage erneut ausführen — neue Next Steps generieren',
+    modelSaved: 'gespeichert',
+    notifyModelReset: 'Modell „{0}“ ist in Ollama nicht installiert — auf {1} zurückgesetzt.',
+    handoffHead: 'Kontext (Übergabe aus einer anderen Hermes-Session):',
+    handoffCwd: 'Arbeitsverzeichnis: {0}',
+    handoffTask: 'Aufgabe: {0}',
+    sendCtxLabel: 'Session-Kontext mitsenden',
+    sendCtxHint: 'An andere Ziele (neuer Tab, Bot, Kanban) gesendete Schritte erhalten eine Kurzfassung — Arbeitsverzeichnis + letzte Nachrichten —, damit sie dort ausführbar sind. Die aktuelle Session braucht keinen Anhang.',
+    pauseTip: 'Automatische Generierung pausieren', resumeTip: 'Automatische Generierung fortsetzen',
+    autoLabel: 'Automatische Generierung', autoHint: 'Pausiert = keine neuen Vorschläge nach Antworten; vorhandene Chips bleiben gedimmt. Der ⟳-Button generiert weiterhin manuell.',
     predict: 'predict', predictBusy: 'predict…', predictError: 'predict!',
     notifyNoComposer: 'Next Steps: Composer nicht erreichbar — Schritt nicht gesendet.',
     notifySent: 'Next Steps: gesendet an {0}.',
@@ -188,7 +211,7 @@ const STRINGS = {
   }
 }
 
-const CATEGORY_IDS = ['auto', 'coding', 'produkt', 'marketing', 'ideation', 'betrieb', 'research', 'custom']
+const CATEGORY_IDS = ['auto', 'coding', 'produkt', 'marketing', 'ideation', 'betrieb', 'research', 'methodik', 'custom']
 const STYLE_IDS = ['auto', 'sofort', 'planung', 'vertiefen', 'verifizieren']
 const LANG_MODES = ['inherit', 'en', 'de']
 const TARGET_IDS = ['session', 'new', 'kanban']
@@ -264,11 +287,16 @@ const designAtom = atom(null)      // global: DESIGN_DEFAULTS-Shape
 const sessionMapAtom = atom({})    // PRO SESSION: sid → {category,style,target,steps}
 const busyMapAtom = atom({})       // PRO SESSION: sid → bool
 const customHintAtom = atom('')    // global: eigene Ausrichtungs-Linse (Freitext)
+const pausedAtom = atom(false)     // global: automatische Generierung pausiert?
+const handoffAtom = atom(true)     // global: Session-Kontext an andere Ziele mitsenden
 const errorAtom = atom('')
 const botsAtom = atom([])          // profiles.list (lazy)
 const ollamaModelsAtom = atom([])  // /api/tags → installierte Ollama-Modelle
 const hermesModelAtom = atom({ model: '', provider: '' }) // aus Hermes' Composer-Menü gewählt
 let requestSeq = 0
+/** Non-React-Übersetzer in der AKTUELLEN Plugin-Sprache (inherit → App-Locale).
+ *  Wird von register() gebunden; Module die vor register laufen, nutzen den Key. */
+let tr = (key, ...args) => fmt(String(key), args)
 
 const SESSION_DEFAULT = { category: 'auto', style: 'auto', target: 'session', steps: [] }
 
@@ -370,6 +398,19 @@ function historyLines(sessionId, rows) {
     .catch(() => [])
 }
 
+/** Kurzfassung der Quelle für Ziele OHNE Session-Kontext: Arbeitsverzeichnis +
+ *  die letzten Nachrichten. Ohne `task` endet der Block nach dem Verlauf. */
+async function buildHandoff(sid, t, task) {
+  const lines = await historyLines(sid, HANDOFF_ROWS)
+  const cwd = host.state.cwd.get() || ''
+  const parts = [t('handoffHead')]
+  if (cwd) parts.push(fmt(t('handoffCwd'), [cwd]))
+  if (lines.length) parts.push(lines.map(l => `${l.role}: ${l.text}`).join('\n'))
+  let block = parts.join('\n')
+  if (task) block += `\n\n${fmt(t('handoffTask'), [task])}`
+  return block
+}
+
 function setSessionSteps(ctxRef, sid, steps) {
   const key = ctxRef.sessionKey(sid)
   if (!key || !Array.isArray(steps)) return
@@ -388,10 +429,13 @@ function patchSessionState(ctxRef, sid, patch) {
   ctxRef.persistSessions(map)
 }
 
-function refreshFor(ctxRef, sid) {
+function refreshFor(ctxRef, sid, opts) {
   const key = ctxRef.sessionKey(sid)
   if (!key) return
-  if (host.state.busy.get() || busyMapAtom.get()[key]) return
+  const force = Boolean(opts && opts.force)
+  if (busyMapAtom.get()[key]) return // eigener Call läuft — kein Doppel-Call
+  if (!force && pausedAtom.get()) return // Pause: keine automatische Generierung
+  if (!force && host.state.busy.get()) return // Auto-Trigger: nicht mitten in den Agent-Turn funken
   busyMapAtom.set({ ...busyMapAtom.get(), [key]: true })
   errorAtom.set('')
   const cfg = ctxRef.config()
@@ -404,7 +448,7 @@ function refreshFor(ctxRef, sid) {
           const invalid = cfg.model
           cfg.model = MODEL_DEFAULT
           ctxRef.setModelCfg({ ...modelCfgAtom.get(), model: MODEL_DEFAULT })
-          errorAtom.set(`Modell „${invalid}“ ist in Ollama nicht installiert — auf ${MODEL_DEFAULT} zurückgesetzt.`)
+          errorAtom.set(tr('notifyModelReset', invalid, MODEL_DEFAULT))
         }
       })
     : Promise.resolve()
@@ -476,6 +520,18 @@ async function modelExists(port, model) {
 /** Einen Schritt an ein Ziel senden. Gibt den Ziel-Namen (für die Notify) zurück. */
 async function sendStep(ctxRef, step, target, t) {
   const kind = target?.kind || 'session'
+  const sid = host.state.focusedSessionId.get()
+  // Kurzfassung (Arbeitsverzeichnis + letzte Nachrichten) für Ziele OHNE den
+  // Session-Kontext; schlägt das Sammeln fehl, geht nur der Schritt raus.
+  let handoff = ''
+  if (kind !== 'session' && sid && handoffAtom.get()) {
+    try {
+      handoff = await buildHandoff(sid, t, null)
+    } catch {
+      handoff = ''
+    }
+  }
+  const prompt = handoff ? `${handoff}\n\n${fmt(t('handoffTask'), [step])}` : step
   if (kind === 'session') {
     const sent = host.composer.submit(null, step)
     if (!sent) {
@@ -486,22 +542,43 @@ async function sendStep(ctxRef, step, target, t) {
   }
   if (kind === 'new') {
     try {
-      const created = await host.request('session.create', {})
-      const newId = created?.session_id || created?.id || (typeof created === 'string' ? created : null)
-      if (newId && typeof host.openSession === 'function') await host.openSession(String(newId), {})
-      const sent = host.composer.submit(newId ? String(newId) : null, step)
-      if (!sent) host.notify({ kind: 'error', message: t('notifyNoComposer') })
-      return sent ? t('tgt_new') : null
+      // Kanonischer Desktop-Flow (wie App/Bots): session.create ist lazy (die
+      // stored row entsteht erst mit dem ersten Prompt) und liefert BEIDE IDs.
+      // View über die STORED-ID mounten, den Turn per prompt.submit senden
+      // (composer.submit erreicht nur gemountete Composer-Surfaces — genau die
+      // hat eine frisch erstellte Session nicht).
+      const cwd = host.state.cwd.get() || ''
+      const created = await host.request('session.create', { cols: 96, source: 'desktop', ...(cwd ? { cwd } : {}) })
+      const runtimeId = created?.session_id
+      const storedId = created?.stored_session_id
+      if (!runtimeId) throw new Error('session.create lieferte keine session_id')
+      let opened = false
+      if (storedId && typeof host.openSession === 'function') {
+        try {
+          await host.openSession(String(storedId), {})
+          opened = true
+        } catch { /* Row entsteht erst nach dem ersten Prompt */ }
+      }
+      await host.request('prompt.submit', { session_id: String(runtimeId), text: prompt })
+      if (!opened && storedId && typeof host.openSession === 'function') {
+        await host.openSession(String(storedId), {})
+      }
+      return t('tgt_new')
     } catch {
-      const sent = host.composer.submit(null, step)
+      const sent = host.composer.submit(null, prompt)
       if (!sent) host.notify({ kind: 'error', message: t('notifyNoComposer') })
       return sent ? t('tgt_session') : null
     }
   }
   if (kind === 'kanban') {
+    // Verb ist „create“ (der Slash nutzt den echten Kanban-CLI-Parser); der
+    // Kontext reist als --body mit. Anführungszeichen werden neutralisiert.
+    const title = String(step).replace(/"/g, "'")
+    const body = handoff ? ` --body "${handoff.replace(/"/g, "'")}"` : ''
     try {
-      const sid = host.state.focusedSessionId.get()
-      await host.request('slash.exec', { session_id: sid, command: `kanban add ${step}` })
+      const res = await host.request('slash.exec', { session_id: sid, command: `kanban create "${title}"${body}` })
+      const out = String((res && typeof res === 'object' ? res.output : res) ?? '').trim()
+      if (/usage error|^error:/im.test(out)) throw new Error(out.slice(0, 140))
       return t('tgt_kanban')
     } catch {
       try {
@@ -516,16 +593,23 @@ async function sendStep(ctxRef, step, target, t) {
     const bot = String(target?.bot || '')
     if (!bot) return null
     try {
-      const created = await host.request('session.create', { profile: bot })
-      const newId = created?.session_id || created?.id || (typeof created === 'string' ? created : null)
-      if (newId && typeof host.openSession === 'function') {
-        await host.openSession(String(newId), { profile: bot })
-        const sent = host.composer.submit(String(newId), step)
-        if (!sent) host.notify({ kind: 'error', message: t('notifyNoComposer') })
-        return sent ? bot : null
+      const cwd = host.state.cwd.get() || ''
+      const created = await host.request('session.create', { profile: bot, cols: 96, source: 'desktop', ...(cwd ? { cwd } : {}) })
+      const runtimeId = created?.session_id
+      const storedId = created?.stored_session_id
+      if (!runtimeId) throw new Error('session.create lieferte keine session_id')
+      let opened = false
+      if (storedId && typeof host.openSession === 'function') {
+        try {
+          await host.openSession(String(storedId), { profile: bot })
+          opened = true
+        } catch { /* Row entsteht erst nach dem ersten Prompt */ }
       }
-      host.notify({ kind: 'error', message: `${bot}: session.create unavailable` })
-      return null
+      await host.request('prompt.submit', { session_id: String(runtimeId), text: prompt })
+      if (!opened && storedId && typeof host.openSession === 'function') {
+        await host.openSession(String(storedId), { profile: bot })
+      }
+      return bot
     } catch (error) {
       host.notify({ kind: 'error', message: `${bot}: ${error instanceof Error ? error.message : String(error)}` })
       return null
@@ -568,7 +652,7 @@ const CSS = `
   color:var(--ui-text-primary);background:var(--ns-bg);border:1px solid var(--ns-border);
   -webkit-backdrop-filter:var(--ns-filter);backdrop-filter:var(--ns-filter);
   box-shadow:var(--ns-shadow);
-  transition:background .15s ease,color .15s ease,border-color .15s ease}
+  transition:background .15s ease,color .15s ease,border-color .15s ease,opacity .2s ease}
 .sp-btn:hover{background:var(--chrome-action-hover);border-color:var(--ui-accent);color:var(--ui-text-primary)}
 .sp-num{color:var(--ui-accent);font-variant-numeric:tabular-nums;flex-shrink:0}
 .sp-label{overflow:hidden;text-overflow:ellipsis}
@@ -585,6 +669,21 @@ const CSS = `
   transition:border-color .15s ease}
 .sp-opt:hover{border-color:var(--ui-accent)}
 .sp-caret{font-size:9px;opacity:.7}
+/* Neu-generieren-Chip — führt die Vorhersage-Anfrage erneut aus */
+.sp-refresh{padding:0 9px}
+.sp-refresh-icon{display:inline-block;font-size:13px;line-height:1}
+.sp-refresh[data-busy="true"]{border-color:var(--ui-accent);color:var(--ui-accent)}
+.sp-refresh[data-busy="true"] .sp-refresh-icon{animation:ns-spin .9s linear infinite}
+.sp-refresh[data-blocked="true"]{opacity:.55;cursor:default}
+.sp-refresh[data-blocked="true"]:hover{border-color:var(--ns-border)}
+@keyframes ns-spin{to{transform:rotate(360deg)}}
+:root[data-renderer-animations-paused] .sp-refresh[data-busy="true"] .sp-refresh-icon{animation:none}
+/* Start/Stop-Chip — pausiert die automatische Generierung, dimmt die Chips */
+.sp-pause{padding:0 9px}
+.sp-pause-icon{display:inline-block;font-size:12px;line-height:1}
+.sp-pause[data-paused="true"]{border-color:var(--ui-accent);color:var(--ui-accent)}
+.sp-wrap[data-paused="true"] .sp-btn{opacity:.45}
+.sp-wrap[data-paused="true"] .sp-btn:hover{opacity:.78}
 /* Statusleisten-Chip */
 .sp-chip{display:inline-flex;align-items:center;gap:4px;height:100%;padding:0 6px;border:0;background:transparent;
   cursor:pointer;font-size:11px;color:var(--ui-text-tertiary)}
@@ -652,6 +751,7 @@ const CSS = `
 @keyframes ns-pop-out-b{from{opacity:1;translate:0 0;scale:1}to{opacity:0;translate:0 -4px;scale:.96}}
 @media (prefers-reduced-motion: reduce){
   .sp-menu-panel[data-state="open"],.sp-menu-panel[data-state="closed"]{animation:none}
+  .sp-refresh[data-busy="true"] .sp-refresh-icon{animation:none}
 }
 `
 
@@ -758,7 +858,11 @@ function OptionsBody({ tab, t, ctxRef, sid }) {
   const ollamaModels = useValue(ollamaModelsAtom)
   const hm = useValue(hermesModelAtom)
   const customAtom = useValue(customHintAtom)
-  const st = sessionState(map, sid)
+  const paused = useValue(pausedAtom)
+  const handoff = useValue(handoffAtom)
+  // Lesen über den Persistenz-Key (stored Session-ID) — Schreiben (patchSession)
+  // löst intern denselben Key auf; sonst zeigt das Popover nie die Session-Werte.
+  const st = sessionState(map, ctxRef.sessionKey(sid))
   const catItems = CATEGORY_IDS.map(id => ({
     id,
     label: t(`cat_${id}`),
@@ -791,6 +895,8 @@ function OptionsBody({ tab, t, ctxRef, sid }) {
         items: [3, 4, 5].map(n => ({ id: String(n), label: fmt(t('stepOpt'), [n]) })),
         onChange: v => ctxRef.setDesign({ ...d, steps: Number(v) })
       }),
+      jsx(SwitchRow, { label: t('autoLabel'), on: paused, onChange: v => ctxRef.setPaused(v) }),
+      jsx('div', { className: 'sp-hint', children: t('autoHint') }),
       sid
         ? jsx('div', { className: 'sp-hint', children: t('focusHint') })
         : jsx('div', { className: 'sp-hint', children: t('noSessionHint') })
@@ -816,7 +922,7 @@ function OptionsBody({ tab, t, ctxRef, sid }) {
           onChange: e => ctxRef.setModelCfg({ ...mc, model: e.target.value }),
           children: [
             ...ollamaModels.map(name => jsx('option', { value: name, children: name }, name)),
-            ...(ollamaModels.includes(mc.model) ? [] : [jsx('option', { value: mc.model, children: `${mc.model} (gespeichert)` }, '__saved')])
+            ...(ollamaModels.includes(mc.model) ? [] : [jsx('option', { value: mc.model, children: `${mc.model} (${t('modelSaved')})` }, '__saved')])
           ]
         }),
         jsx('button', {
@@ -910,6 +1016,8 @@ function OptionsBody({ tab, t, ctxRef, sid }) {
         onChange: v => ctxRef.patchSession(sid, { target: v })
       }),
       jsx('div', { className: 'sp-hint', children: t('targetHint') }),
+      jsx(SwitchRow, { label: t('sendCtxLabel'), on: handoff, onChange: v => ctxRef.setHandoff(v) }),
+      jsx('div', { className: 'sp-hint', children: t('sendCtxHint') }),
       jsxs('div', { className: 'sp-set', children: [
         jsx('label', { children: t('botLabel') }),
         jsx('span', { className: 'sp-hint', children: bots.length ? bots.join(', ') : t('botNone') })
@@ -1007,6 +1115,47 @@ function OptionsChip({ ctxRef }) {
   })
 }
 
+/** „Neu generieren“ — führt die Vorhersage-Anfrage erneut aus und ersetzt
+ *  die Vorschläge der fokussierten Session durch frische. Gesperrt, solange
+ *  der Agent arbeitet oder der Call läuft. */
+/** „Start/Stop“ — pausiert die automatische Generierung (nach Agent-Antworten).
+ *  Pausiert: keine neuen Auto-Vorschläge, Step-Chips gedimmt; der manuelle
+ *  ⟳-Klick generiert weiterhin. Zustand global + persistent. */
+function PauseChip({ ctxRef }) {
+  const t = useT()
+  const paused = useValue(pausedAtom)
+  return jsx('button', {
+    className: 'sp-opt sp-pause',
+    type: 'button',
+    title: paused ? t('resumeTip') : t('pauseTip'),
+    'aria-label': paused ? t('resumeTip') : t('pauseTip'),
+    'aria-pressed': paused ? 'true' : 'false',
+    'data-paused': paused ? 'true' : 'false',
+    onClick: () => ctxRef.setPaused(!paused),
+    children: jsx('span', { className: 'sp-pause-icon', children: paused ? '\u25B6\uFE0E' : '\u23F8\uFE0E' })
+  })
+}
+
+function RefreshChip({ ctxRef }) {
+  const t = useT()
+  const sid = useValue(host.state.focusedSessionId)
+  const agentBusy = useValue(host.state.busy)
+  const busyMap = useValue(busyMapAtom)
+  const key = ctxRef.sessionKey(sid)
+  const busy = Boolean(key && busyMap[key])
+  const blocked = !sid || busy
+  return jsx('button', {
+    className: 'sp-opt sp-refresh',
+    type: 'button',
+    title: t('refreshTip'),
+    'aria-label': t('refreshLabel'),
+    'data-busy': busy ? 'true' : 'false',
+    'data-blocked': blocked ? 'true' : 'false',
+    onClick: () => { if (!blocked) refreshFor(ctxRef, sid, { force: true }) },
+    children: jsx('span', { className: 'sp-refresh-icon', children: '⟳' })
+  })
+}
+
 /** Ziel-Menü am Chip-Ende — einmaliges Ziel für genau diesen Klick. */
 function TargetMenu({ ctxRef, step, t, onDone }) {
   const bots = useValue(botsAtom)
@@ -1027,7 +1176,7 @@ function TargetMenu({ ctxRef, step, t, onDone }) {
           className: 'sp-target',
           type: 'button',
           title: t('chipMenu'),
-          children: '⌖'
+          children: jsx(Codicon, { name: 'send', size: '0.72rem' })
         })
       }),
       jsx(PopoverContent, {
@@ -1060,12 +1209,18 @@ function Suggestions({ ctxRef }) {
   const t = useT()
   const sid = useValue(host.state.focusedSessionId)
   const map = useValue(sessionMapAtom)
-  const st = sessionState(map, sid)
+  const paused = useValue(pausedAtom)
+  // LESEN über denselben Key, unter dem geschrieben wird (stored Session-ID).
+  // Runtime-ID != Persistenz-Key — sonst bleiben die Chips unsichtbar.
+  const st = sessionState(map, ctxRef.sessionKey(sid))
   if (!sid) return null
   return jsxs('div', {
     className: 'sp-wrap',
+    'data-paused': paused ? 'true' : 'false',
     children: [
+      jsx(PauseChip, { ctxRef }),
       jsx(OptionsChip, { ctxRef }),
+      jsx(RefreshChip, { ctxRef }),
       ...st.steps.map((step, index) =>
         jsxs('span', {
           className: 'sp-btn',
@@ -1079,7 +1234,8 @@ function Suggestions({ ctxRef }) {
                   if (dest) host.notify({ kind: 'info', message: fmt(t('notifySent'), [dest]) })
                   setSessionSteps(ctxRef, sid, [])
                 })
-              }
+              },
+              children: step
             }),
             jsx(TargetMenu, { ctxRef, step, t, onDone: () => setSessionSteps(ctxRef, sid, []) })
           ]
@@ -1095,7 +1251,8 @@ function StatusChip({ ctxRef }) {
   const busyMap = useValue(busyMapAtom)
   const error = useValue(errorAtom)
   const mc = useValue(modelCfgAtom)
-  const busy = Boolean(sid && busyMap[sid])
+  const key = ctxRef.sessionKey(sid)
+  const busy = Boolean(key && busyMap[key])
   return jsx(Tip, {
     label: fmt(t('chipTip'), [mc.model]),
     children: jsx('button', {
@@ -1106,7 +1263,7 @@ function StatusChip({ ctxRef }) {
       onClick: () => {
         if (busy) return
         if (error) host.notify({ kind: 'error', message: `Next Steps: ${error}` })
-        refreshFor(ctxRef, sid)
+        refreshFor(ctxRef, sid, { force: true })
       },
       children: busy ? t('predictBusy') : error ? t('predictError') : t('predict')
     })
@@ -1124,7 +1281,7 @@ function SettingsPage({ ctxRef }) {
       jsx('div', { className: 'sp-intro', children: t('pageIntro') }),
       jsx('button', {
         className: 'sp-link', type: 'button',
-        onClick: () => refreshFor(ctxRef, sid),
+        onClick: () => refreshFor(ctxRef, sid, { force: true }),
         children: t('refreshNow')
       }),
       jsx('div', { className: 'sp-sec', children: [
@@ -1193,6 +1350,8 @@ export default {
     const storedLang = String(ctx.storage.get('lang', 'inherit'))
     langAtom.set(LANG_MODES.includes(storedLang) ? storedLang : 'inherit')
     customHintAtom.set(String(ctx.storage.get('customHint', '')))
+    pausedAtom.set(Boolean(ctx.storage.get('paused', false)))
+    handoffAtom.set(ctx.storage.get('handoff', true) !== false)
 
     // ---- Pro-Session State ----------------------------------------------
     const storedSessions = ctx.storage.get('sessionStates', null)
@@ -1206,6 +1365,17 @@ export default {
         return ctx.i18n.t('tag') // inherit: gegen die App-Locale aufgelöst
       } catch {
         return 'en'
+      }
+    }
+    // Non-React-Meldungen (Notify/Fehler) in der aktuellen Plugin-Sprache;
+    // inherit → SDK-Kette gegen die App-Locale (de/en).
+    tr = (key, ...args) => {
+      try {
+        const mode = langAtom.get()
+        if (mode === 'en' || mode === 'de') return fmt(STRINGS[mode][key] ?? STRINGS.en[key] ?? key, args)
+        return fmt(ctx.i18n.t(key), args)
+      } catch {
+        return fmt(STRINGS.en[key] ?? key, args)
       }
     }
     const config = () => {
@@ -1264,6 +1434,8 @@ export default {
       setDesign: d => designAtom.set(d),
       setModelCfg: m => modelCfgAtom.set(m),
       setLang: v => langAtom.set(v),
+      setPaused: v => pausedAtom.set(Boolean(v)),
+      setHandoff: v => handoffAtom.set(Boolean(v)),
       setHermesModel: hm => hermesModelAtom.set({ model: String(hm.model || ''), provider: String(hm.provider || '') }),
       refreshOllamaModels: () => {
         listOllamaModels(modelCfgAtom.get().port).then(models => ollamaModelsAtom.set(models))
@@ -1281,6 +1453,8 @@ export default {
     const offHermesModel = hermesModelAtom.subscribe(hm => ctx.storage.set('hermesModel', hm))
     const offLang = langAtom.subscribe(v => ctx.storage.set('lang', v))
     const offCustom = customHintAtom.subscribe(v => ctx.storage.set('customHint', String(v || '')))
+    const offPaused = pausedAtom.subscribe(v => ctx.storage.set('paused', Boolean(v)))
+    const offHandoff = handoffAtom.subscribe(v => ctx.storage.set('handoff', Boolean(v)))
 
     // Event-Listener: session_id aus dem Event → Vorschläge für GENAU DIESE Session.
     const debounceTimers = {}
@@ -1305,6 +1479,8 @@ export default {
       offHermesModel()
       offLang()
       offCustom()
+      offPaused()
+      offHandoff()
       offComplete()
       Object.values(debounceTimers).forEach(clearTimeout)
     })
@@ -1347,10 +1523,10 @@ export default {
     // Erster Abruf für die fokussierte Session.
     ctx.setTimeout(() => refreshFor(ctxRef, host.state.focusedSessionId.get()), 2500)
 
-    console.warn(`[plugins] next-steps: aktiv (ollama ${modelCfgAtom.get().model} @ :${modelCfgAtom.get().port})`)
+    console.error(`[plugins] next-steps: aktiv (ollama ${modelCfgAtom.get().model} @ :${modelCfgAtom.get().port})`)
     host.notify({ kind: 'info', message: fmt(ctx.i18n.t('notifyActive'), [modelCfgAtom.get().model]) })
   }
 }
 
 // Test-Exporte (vom App-Loader ignoriert).
-export { CAP_PROFILES, STRINGS, buildSystemPrompt, capProfile, fetchSuggestions, fmt, parseSteps }
+export { CAP_PROFILES, CATEGORY_IDS, STRINGS, buildSystemPrompt, capProfile, fetchSuggestions, fmt, handoffAtom, parseSteps, sessionMapAtom }

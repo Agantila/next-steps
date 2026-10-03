@@ -4,7 +4,7 @@ LLM-gestützte „Nächste Schritte“-Vorschläge unter dem Composer des Hermes
 angereichert mit Ausrichtungs-Linsen, Ziel-Routing (Session/Bot/Kanban) und
 pro-Session-State. Läuft komplett lokal gegen einen Ollama-Endpoint.
 
-**Status:** v9, produktiv im Einsatz (`~/.hermes/desktop-plugins/next-steps/plugin.js`).
+**Status:** v11, produktiv im Einsatz (`~/.hermes/desktop-plugins/next-steps/plugin.js`).
 
 ---
 
@@ -21,7 +21,7 @@ curl -s http://localhost:11434/api/tags | head -c 200   # Ollama erreichbar?
 ```
 
 Das Plugin erscheint als:
-- **Vorschlagsleiste** unter dem Composer (⚙-Options-Chip + Schritt-Chips)
+- **Vorschlagsleiste** unter dem Composer (⏸/▶ Start/Stop, ⚙-Options-Chip, ⟳-Button „neu generieren“ + Schritt-Chips)
 - **Statusleisten-Chip** `predict` (Klick = neu laden)
 - **Sidebar-Eintrag „Next Steps“** → Einstellungsseite (`/next-steps`)
 - Abschnitt in **Settings → Appearance**
@@ -31,13 +31,15 @@ Das Plugin erscheint als:
 Alle Tests sind Node-E2E-Harnesses (Stub-SDK + echte Ollama-Calls):
 
 ```bash
+node tests/run_test_v11.mjs   # Senden-Icon + Handoff (Kontext in neue Ziele) + Kanban-create
+node tests/run_test_v10.mjs   # „Neu generieren“: Klick → erneuter Call → neue Chips
 node tests/run_test_v9.mjs    # Tab-Labels + Hook-Plan (statisch)
 node tests/run_test_v9b.mjs   # Live-Render-Beweis der Einstellungsseite
 node tests/run_test_v7.mjs    # Atoms-Vertrag: register() erzeugt keine Zwillings-Atoms
 node tests/run_test_v6.mjs    # Modell-Quellen, Kapazitätsprofile, echter Ollama-Call
 ```
 
-Der Lauf der jeweils neuesten Version (`v9`, `v9b`) muss grün sein, bevor ein
+Der Lauf der jeweils neuesten Version (`v11`, `v10`, `v9`, `v9b`) muss grün sein, bevor ein
 Release-stand in `~/.hermes/desktop-plugins/next-steps/` aktualisiert wird.
 
 ---
@@ -49,7 +51,7 @@ Gateway-Event message.complete (mit session_id)
    → session.history RPC (letzte 8 user/assistant-Zeilen)
    → POST http://localhost:11434/api/chat (format:"json", think:false)
    → {"steps":[N]}  (N = 3–5)
-   → Chips in COMPOSER_AREAS.underside
+   → Chips in COMPOSER_AREAS.underside (⟳-Chip: Anfrage erneut ausführen)
    → Klick: host.composer.submit(step) ans gewählte Ziel
 ```
 
@@ -57,7 +59,7 @@ Gateway-Event message.complete (mit session_id)
 
 **Alle globalen Einstellungen leben in modulglobalen Atoms** (`designAtom`,
 `modelCfgAtom`, `langAtom`, `customHintAtom`, `hermesModelAtom`,
-`ollamaModelsAtom`, `botsAtom`) — `register()` setzt sie nur noch per `.set()`
+`ollamaModelsAtom`, `botsAtom`, `pausedAtom`) — `register()` setzt sie nur noch per `.set()`
 aus dem Storage, **erzeugt keine eigenen Atoms**. Hintergrund: eine frühere
 Version hielt Zwillings-Atoms (lokal + global), wodurch Schreiben und Lesen
 auseinanderliefen und Einstellungen „nicht live“ griffen (siehe v8-Fix).
@@ -65,7 +67,11 @@ auseinanderliefen und Einstellungen „nicht live“ griffen (siehe v8-Fix).
 **Pro Session** (`sessionMapAtom`, persistiert als `sessionStates`, gekappt auf
 40 Einträge): `category`, `style`, `target`, `steps`. Session-Key ist die
 **dauerhafte stored session ID** (`host.state.focusedStoredSessionId`) —
-Runtime-IDs überleben keinen App-Neustart.
+Runtime-IDs überleben keinen App-Neustart. **Wichtig:** Lesen UND Schreiben
+müssen über `ctxRef.sessionKey(sid)` laufen — sonst schreibt das Plugin unter
+der stored-ID und liest unter der Runtime-ID (Bug v≤9: Chips unsichtbar, weil
+die beiden IDs real auseinanderfallen, z. B. `a061e2e6` vs.
+`20261003_225707_2f56c7`).
 
 ### Modell-Quellen (`modelCfg.source`)
 
@@ -87,8 +93,16 @@ setzen eine Klartext-Fehlermeldung.
 
 - `session` — aktueller Composer (`host.composer.submit`)
 - `new` — `session.create` + `openSession` + submit
-- `kanban` — `slash.exec` mit `kanban add …` (Fallback: Clipboard + `/kanban`)
+- `kanban` — `slash.exec` mit `kanban create "<Titel>" [--body "<Kontext>"]` (Fallback: Clipboard + `/kanban`)
 - `bot:<name>` — `session.create { profile }` + `openSession { profile }` + submit
+
+### Kontext-Übergabe (Handoff)
+
+Schritte an andere Ziele (neuer Tab, Bot, Kanban) tragen eine **Kurzfassung der
+Quelle** mit: Arbeitsverzeichnis + die letzten 6 Nachrichten (+ „Aufgabe: …“),
+damit das Ziel die Aktion ausführen kann. Abschaltbar im Tab „Ziele“
+(Default an); die aktuelle Session bekommt keinen Anhang (Kontext ist da).
+Kanban-Karten entstehen als `kanban create "<Titel>" --body "<Kontext>"`.
 
 ### i18n
 
@@ -129,4 +143,10 @@ Die Schritt-Sprache im Prompt folgt derselben Wahl.
 ## Dateien
 
 - `plugin.js` — das komplette Plugin (eine Datei, Plain-ESM, kein Build)
-- `tests/run_test_v*.mjs` — Harnesses pro Feature-Release (v6–v9)
+- `tests/run_test_v*.mjs` — Harnesses pro Feature-Release (v6–v11)
+- `README.md` · `CHANGELOG.md` · `DEVELOPMENT.md` — Überblick · Versionshistorie · Fallstricke
+- `LICENSE` — MIT
+
+## Lizenz
+
+MIT © 2026 Deniz — siehe [LICENSE](./LICENSE).

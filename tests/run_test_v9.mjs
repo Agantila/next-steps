@@ -53,6 +53,7 @@ const { host: h, makeAtom: mkAtom } = globalThis.__SP_TEST__
 export const host = h
 export const atom = mkAtom
 export const Tip = p => p?.children ?? null
+export const Codicon = () => null
 export const useValue = a => {
   if (globalThis.__NS_HOOKLOG__) globalThis.__NS_HOOKLOG__.push('useValue')
   return a.get()
@@ -144,7 +145,7 @@ const hooksAfter = (body.slice(firstIf).match(/useValue\(|useState\(/g) || []).l
 check(firstIf !== -1, 'OptionsBody gefunden')
 check(hooksAfter === 0, `Keine Hooks nach dem ersten if im OptionsBody (gefunden: ${hooksAfter})`)
 const hooksBefore = (body.slice(0, firstIf).match(/useValue\(/g) || []).length
-check(hooksBefore === 8, `Alle 8 useValue-Hooks am Kopf (gefunden: ${hooksBefore})`)
+check(hooksBefore === 10, `Alle 10 useValue-Hooks am Kopf (gefunden: ${hooksBefore})`)
 
 // B) Tab-Labels: resolve gegen die DE-Bundles über die echte render-Bahn.
 // tabLabel(t, 'focus') etc. — tabLabel ist nicht exportiert; wir prüfen die Keys:
