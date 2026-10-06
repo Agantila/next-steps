@@ -117,7 +117,7 @@ const STRINGS = {
     sendCtxLabel: 'Attach session context',
     sendCtxHint: 'Steps sent to other targets (new tab, bot, board) carry a short handoff — working directory + the last messages — so they stay actionable there. The current session needs no attachment.',
     pauseTip: 'Pause auto-generation', resumeTip: 'Resume auto-generation',
-    autoLabel: 'Auto-generation', autoHint: 'Paused = no new suggestions after agent answers; existing chips stay dimmed. The ⟳ button still generates manually.',
+    autoLabel: 'Auto-generation', autoHint: 'Paused = no new suggestions after agent answers; the latest predictions are removed and the bar starts clean on resume. The ⟳ button still generates manually.',
     predict: 'predict', predictBusy: 'predict…', predictError: 'predict!',
     notifyNoComposer: 'Next Steps: composer unreachable — step not sent.',
     notifySent: 'Next Steps: sent to {0}.',
@@ -197,7 +197,7 @@ const STRINGS = {
     sendCtxLabel: 'Session-Kontext mitsenden',
     sendCtxHint: 'An andere Ziele (neuer Tab, Bot, Kanban) gesendete Schritte erhalten eine Kurzfassung — Arbeitsverzeichnis + letzte Nachrichten —, damit sie dort ausführbar sind. Die aktuelle Session braucht keinen Anhang.',
     pauseTip: 'Automatische Generierung pausieren', resumeTip: 'Automatische Generierung fortsetzen',
-    autoLabel: 'Automatische Generierung', autoHint: 'Pausiert = keine neuen Vorschläge nach Antworten; vorhandene Chips bleiben gedimmt. Der ⟳-Button generiert weiterhin manuell.',
+    autoLabel: 'Automatische Generierung', autoHint: 'Pausiert = keine neuen Vorschläge nach Antworten; die zuletzt angezeigten Predictions werden entfernt und die Leiste startet bei Fortsetzung leer. Der ⟳-Button generiert weiterhin manuell.',
     predict: 'predict', predictBusy: 'predict…', predictError: 'predict!',
     notifyNoComposer: 'Next Steps: Composer nicht erreichbar — Schritt nicht gesendet.',
     notifySent: 'Next Steps: gesendet an {0}.',
@@ -411,6 +411,19 @@ async function buildHandoff(sid, t, task) {
   return block
 }
 
+/** Alle gespeicherten Predictions entfernen (beim Pausieren): Steps in JEDER
+ *  Session leeren und sofort persistieren — die Leiste ist danach sauber, auch
+ *  über einen Neustart (keine gedimmen Alt-Chips mehr). Kategorie/Stil/Ziel
+ *  der Sessions bleiben erhalten; nur die Vorschläge werden entfernt. */
+function clearAllSessionSteps(ctxRef) {
+  const map = { ...sessionMapAtom.get() }
+  for (const key of Object.keys(map)) {
+    map[key] = { ...SESSION_DEFAULT, ...map[key], steps: [] }
+  }
+  sessionMapAtom.set(map)
+  ctxRef.persistSessions(map)
+}
+
 function setSessionSteps(ctxRef, sid, steps) {
   const key = ctxRef.sessionKey(sid)
   if (!key || !Array.isArray(steps)) return
@@ -463,6 +476,10 @@ function refreshFor(ctxRef, sid, opts) {
       return fetchSuggestions(cfg, context)
     })
     .then(steps => {
+      // INVARIANTE: Ein Ergebnis, das NACH dem Pausieren eintrifft (Auto-Call
+      // war vor dem Klick unterwegs), wird verworfen — nach Pause keine neuen
+      // Chips mehr. Manuelle Calls (force) liefern weiter aus.
+      if (!force && pausedAtom.get()) return
       if (Array.isArray(steps)) setSessionSteps(ctxRef, sid, steps)
     })
     .catch(error => {
@@ -678,7 +695,8 @@ const CSS = `
 .sp-refresh[data-blocked="true"]:hover{border-color:var(--ns-border)}
 @keyframes ns-spin{to{transform:rotate(360deg)}}
 :root[data-renderer-animations-paused] .sp-refresh[data-busy="true"] .sp-refresh-icon{animation:none}
-/* Start/Stop-Chip — pausiert die automatische Generierung, dimmt die Chips */
+/* Start/Stop-Chip — pausiert die Automatik; die zuletzt angezeigten Predictions
+   werden dabei entfernt (Dim-Regel bleibt als Rückfallebene für Restzustände) */
 .sp-pause{padding:0 9px}
 .sp-pause-icon{display:inline-block;font-size:12px;line-height:1}
 .sp-pause[data-paused="true"]{border-color:var(--ui-accent);color:var(--ui-accent)}
@@ -1119,8 +1137,8 @@ function OptionsChip({ ctxRef }) {
  *  die Vorschläge der fokussierten Session durch frische. Gesperrt, solange
  *  der Agent arbeitet oder der Call läuft. */
 /** „Start/Stop“ — pausiert die automatische Generierung (nach Agent-Antworten).
- *  Pausiert: keine neuen Auto-Vorschläge, Step-Chips gedimmt; der manuelle
- *  ⟳-Klick generiert weiterhin. Zustand global + persistent. */
+ *  Pausieren ENTFERNT die zuletzt angezeigten Predictions (Storage-Steps werden
+ *  geleert); der manuelle ⟳-Klick generiert weiterhin. Global + persistent. */
 function PauseChip({ ctxRef }) {
   const t = useT()
   const paused = useValue(pausedAtom)
@@ -1351,6 +1369,8 @@ export default {
     langAtom.set(LANG_MODES.includes(storedLang) ? storedLang : 'inherit')
     customHintAtom.set(String(ctx.storage.get('customHint', '')))
     pausedAtom.set(Boolean(ctx.storage.get('paused', false)))
+    // Store-Startwert respektieren — keine Cleanup-Logik im register(), sonst
+    // würde register() einen Test-Store stumm umschreiben.
     handoffAtom.set(ctx.storage.get('handoff', true) !== false)
 
     // ---- Pro-Session State ----------------------------------------------
@@ -1434,7 +1454,14 @@ export default {
       setDesign: d => designAtom.set(d),
       setModelCfg: m => modelCfgAtom.set(m),
       setLang: v => langAtom.set(v),
-      setPaused: v => pausedAtom.set(Boolean(v)),
+      setPaused: v => {
+        const next = Boolean(v)
+        pausedAtom.set(next)
+        // Pause = auch die zuletzt angezeigten Predictions entfernen und den
+        // gespeicherten Pro-Session-State (Steps) bereinigen; Resume startet
+        // leer. Kategorie/Stil/Ziel bleiben erhalten.
+        if (next) clearAllSessionSteps(ctxRef)
+      },
       setHandoff: v => handoffAtom.set(Boolean(v)),
       setHermesModel: hm => hermesModelAtom.set({ model: String(hm.model || ''), provider: String(hm.provider || '') }),
       refreshOllamaModels: () => {

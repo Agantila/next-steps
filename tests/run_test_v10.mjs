@@ -7,7 +7,12 @@
 //  C) Manueller Klick läuft auch bei laufendem Agent (force); Doppel-Call-
 //     Schutz greift nur, solange der eigene Call läuft (pluginBusy).
 //  E) Start/Stop (⏸/▶) VOR dem Options-Chip: pausiert die Auto-Generierung,
-//     dimmt die Chips (data-paused), Resume lässt den Auto-Pfad wieder laufen.
+//     ENTFERNT die zuletzt angezeigten Predictions (auch aus dem Persistenz-
+//     State) und verwirft Auto-Ergebnisse, die nach dem Pausieren eintrifften.
+//     Resume startet mit leerer Leiste; der Auto-Pfad läuft danach wieder.
+//  E2) Pausieren räumt: Chips weg + sessionStates.steps geleert, Kategorie/Stil/
+//     Ziel bleiben.
+//  E3) In-Flight: Auto-Antwort nach Pause → verworfen, kein Persistenz-Write.
 //  F) Popover-Sprache folgt der App-Sprache im Modus „inherit" (en ↔ de live).
 //  G) Neue Ausrichtung „methodik" (Methodik & Best Practices): Keys + Prompt.
 // Harness: Stub-SDK mit rekursivem Element-Walk (führt Funktionskomponenten aus).
@@ -284,6 +289,37 @@ capturedEvents['message.complete']?.({ session_id: 'rt-1' })
 flushDebounce()
 await sleep(200)
 check(chatCalls === 5, `Fortgesetzt: Auto-Refresh läuft wieder (calls=${chatCalls})`)
+
+// ---- E2) Pause entfernt die zuletzt angezeigten Predictions ------------------
+// Erneut Chips erzeugen (Auto-Pfad, Resume läuft ja wieder)
+capturedEvents['message.complete']?.({ session_id: 'rt-1' })
+flushDebounce()
+await sleep(200)
+tree = sug.render()
+const beforePause = stepLabels(tree)
+check(beforePause.length === 3, `Vorbereitung E2: Chips vorhanden (${beforePause.join(' · ')})`)
+// Pausieren → Chips WEG (nicht nur gedimmt), Persistenz bereinigt
+collect(tree, n => n.t === 'button' && String(n.p?.className).includes('sp-pause'))[0].p.onClick()
+tree = sug.render()
+check(stepLabels(tree).length === 0, 'Pausieren entfernt die zuletzt angezeigten Predictions (Leiste leer)')
+const afterPause = storage.get('sessionStates')?.['st-1']
+check(Array.isArray(afterPause?.steps) && afterPause.steps.length === 0,
+  `Persistenz bereinigt: steps=[] unter st-1 (${JSON.stringify(afterPause)})`)
+check(afterPause?.category === 'auto', 'Kategorie/Stil/Ziel bleiben bei der Bereinigung erhalten')
+// Resume → Leiste startet leer; Auto-Calls gibt's erst wieder nach message.complete
+check(stepLabels(sug.render()).length === 0, 'Resume startet mit leerer Leiste')
+// ---- E3) In-Flight-Verwerfung: Auto-Ergebnis nach Pause wird ignoriert -------
+holdNextChat = new Promise(r => { releaseChat = r })
+capturedEvents['message.complete']?.({ session_id: 'rte-2' })
+flushDebounce() // Auto-Call startet (unpausiert), hängt jetzt im fetch
+await sleep(60)
+// Pausieren, WÄHREND der Auto-Call läuft → die spätere Antwort muss verworfen werden
+collect(sug.render(), n => n.t === 'button' && String(n.p?.className).includes('sp-pause'))[0].p.onClick()
+releaseChat()
+await sleep(150)
+tree = sug.render()
+check(stepLabels(tree).length === 0, 'Auto-Ergebnis, das nach dem Pausieren eintrifft, wird VERWORFEN')
+check(!storage.get('sessionStates')?.['rte-2'], 'In-Flight-Verwerfung schreibt keinen Persistenz-State')
 
 // ---- F) Popover folgt der App-Sprache (inherit) -----------------------------
 globalThis.__NS_APP_LOCALE__ = 'en'

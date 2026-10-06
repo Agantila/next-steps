@@ -1,5 +1,17 @@
 CHANGELOG — next-steps-plugin
-==============================
+=============================
+
+v11.1 (2026-10-06)
+  FEAT: Pause räumt auf — das Pausieren der automatischen Generierung (⏸-Chip
+        oder Schalter im Ausrichtung-Popover) entfernt jetzt die zuletzt
+        angezeigten Predictions: Step-Chips verschwinden sofort, die ge-
+        speicherten Steps aller Sessions werden geleert und persistiert
+        (Kategorie/Stil/Ziel bleiben erhalten). Resume startet mit leerer
+        Leiste statt mit gedimmten Alt-Chips.
+  FIX: In-Flight-Verwerfung — trifft das Ergebnis eines Auto-Calls NACH dem
+        Pausieren ein, wird es verworfen (keine neuen Chips mehr nach Pause).
+        Manuelle Calls (⟳, Status-Chip, Einstellungsseite) liefern weiterhin
+        aus. Die Dim-Darstellung bleibt als Rückfallebene für Restzustände.
 
 v11 (2026-10-03)
   FIX: „Neuer Tab“ erzeugte keine Session — zwei API-Fehler: openSession
