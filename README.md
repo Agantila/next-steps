@@ -4,7 +4,7 @@ LLM-gestützte „Nächste Schritte“-Vorschläge unter dem Composer des Hermes
 angereichert mit Ausrichtungs-Linsen, Ziel-Routing (Session/Bot/Kanban) und
 pro-Session-State. Läuft komplett lokal gegen einen Ollama-Endpoint.
 
-**Status:** v11, produktiv im Einsatz (`~/.hermes/desktop-plugins/next-steps/plugin.js`).
+**Status:** v11.1, produktiv im Einsatz (`~/.hermes/desktop-plugins/next-steps/plugin.js`).
 
 **Entwickler & Lizenzinhaber:** AGANTILA (agantila.com) — Deniz Yilmaz · **Lizenz:** MIT (Open Source)
 
@@ -34,7 +34,7 @@ Alle Tests sind Node-E2E-Harnesses (Stub-SDK + echte Ollama-Calls):
 
 ```bash
 node tests/run_test_v11.mjs   # Senden-Icon + Handoff (Kontext in neue Ziele) + Kanban-create
-node tests/run_test_v10.mjs   # „Neu generieren“: Klick → erneuter Call → neue Chips
+node tests/run_test_v10.mjs   # „Neu generieren“ + Start/Stop: Pause entfernt die zuletzt angezeigten Predictions, In-Flight-Verwerfung
 node tests/run_test_v9.mjs    # Tab-Labels + Hook-Plan (statisch)
 node tests/run_test_v9b.mjs   # Live-Render-Beweis der Einstellungsseite
 node tests/run_test_v7.mjs    # Atoms-Vertrag: register() erzeugt keine Zwillings-Atoms
