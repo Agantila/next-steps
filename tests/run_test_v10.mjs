@@ -21,7 +21,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-const PLUGIN_PATH = process.env.NS_PLUGIN_PATH || new URL('../plugin.js', import.meta.url)
+const PLUGIN_PATH = process.env.NS_PLUGIN_PATH || new URL('../desktop/plugin.js', import.meta.url)
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 
 const PLAY = String.fromCodePoint(0x25B6) // ▶ (Text-Variation)

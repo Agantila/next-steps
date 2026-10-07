@@ -19,7 +19,8 @@ npm test         # komplette Test-Suite (Stub-Harnesses, kein Ollama nötig)
 
 ## Entwicklungs-Schleife
 
-1. `plugin.js` bearbeiten (eine Datei, Plain ESM — kein Build-Schritt).
+1. `desktop/plugin.js` bearbeiten (eine Datei, Plain ESM — kein Build-Schritt;
+   `plugin.yaml` im Repo-Root ist das Manifest für Loader/Catalog).
 2. `npm run check && npm test` — muss grün sein.
 3. `npm run deploy` kopiert nach `~/.hermes/desktop-plugins/next-steps/plugin.js`;
    Hermes Desktop lädt Änderungen automatisch nach ~5 s (Fenster sichtbar) oder per

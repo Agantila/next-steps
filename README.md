@@ -14,12 +14,19 @@ pro-Session-State. Läuft komplett lokal gegen einen Ollama-Endpoint.
 
 ```bash
 # 1. Plugin installieren (oder Symlink für Entwicklung):
-ln -s "$PWD/plugin.js" ~/.hermes/desktop-plugins/next-steps/plugin.js
+ln -s "$PWD/desktop/plugin.js" ~/.hermes/desktop-plugins/next-steps/plugin.js
 
 # 2. Voraussetzungen prüfen:
 curl -s http://localhost:11434/api/tags | head -c 200   # Ollama erreichbar?
 
 # 3. Hermes Desktop neu starten (oder ⌘K → „Reload desktop plugins“)
+```
+
+Alternativ nach Catalog-Aufnahme über den Hermes Plugin Catalog
+(`plugin-catalog/next-steps.yaml` im hermes-agent-Repository):
+
+```bash
+hermes plugins install next-steps
 ```
 
 Das Plugin erscheint als:
@@ -146,7 +153,8 @@ Die Schritt-Sprache im Prompt folgt derselben Wahl.
 
 ## Dateien
 
-- `plugin.js` — das komplette Plugin (eine Datei, Plain-ESM, kein Build)
+- `desktop/plugin.js` — das komplette Plugin (eine Datei, Plain-ESM, kein Build; Catalog-Layout, Entry `desktop/plugin.js`)
+- `plugin.yaml` — Manifest für den Hermes Plugin Loader / Catalog (Name, Version, Beschreibung)
 - `tests/run_test_v*.mjs` — Harnesses pro Feature-Release (v6–v11)
 - `README.md` · `CHANGELOG.md` · `DEVELOPMENT.md` — Überblick · Versionshistorie · Fallstricke
 - `CONTRIBUTING.md` · `CODE_OF_CONDUCT.md` · `SECURITY.md` · `.github/` — Mitwirken, Verhaltenskodex, Sicherheit, CI & Templates

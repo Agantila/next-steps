@@ -1,0 +1,11 @@
+name: next-steps
+version: "11.1.0"
+description: >-
+  Session-prediction plugin for Hermes Desktop — suggests next steps under the
+  composer after each turn. Local Ollama inference, per-session state, target
+  routing (current session, new tab, bots, kanban), tiny-model capacity
+  profiles, EN/DE UI. No API keys, no third-party network calls (Ollama only).
+license: MIT
+homepage: https://github.com/Agantila/next-steps
+author: Deniz Yilmaz (AGANTILA)
+tags: [desktop, ollama, predictions, local-first]

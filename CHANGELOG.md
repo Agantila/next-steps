@@ -1,6 +1,14 @@
 CHANGELOG — next-steps-plugin
 =============================
 
+v11.1.0 (2026-10-07)
+  CHORE: Catalog-Layout — `plugin.js` liegt jetzt unter `desktop/plugin.js`
+        (Entry-Pfad, den der Hermes Catalog-Installer und `hermes plugins
+        validate` erwarten). Neu: `plugin.yaml`-Manifest (Name, Version,
+        Beschreibung, Lizenz, Homepage). Tests/CI/Deploy-Skripte und README
+        auf den neuen Pfad umgestellt. Funktional keine Änderung (v11.1-Code
+        unverändert).
+
 v11.1 (2026-10-06)
   FEAT: Pause räumt auf — das Pausieren der automatischen Generierung (⏸-Chip
         oder Schalter im Ausrichtung-Popover) entfernt jetzt die zuletzt
