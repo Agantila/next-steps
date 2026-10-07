@@ -1,5 +1,15 @@
 # next-steps — Session-Prediction-Plugin für Hermes Desktop
 
+**English summary:** LLM-powered "next steps" suggestions shown under the Hermes
+Desktop composer after each turn. Runs fully local against an Ollama endpoint
+(default `http://localhost:11434`), keeps per-session state, routes each step to
+a target of your choice (current session, new tab, a bot, or a kanban card),
+supports tiny-model capacity profiles, and ships an EN/DE UI. Single-file plugin
+(`desktop/plugin.js`, plain ESM, no build step), MIT licensed. Install manually
+via symlink (below) or, once listed, via `hermes plugins install next-steps`.
+This README is written in German; the plugin UI is English-first with a German
+override.
+
 LLM-gestützte „Nächste Schritte“-Vorschläge unter dem Composer des Hermes Desktop,
 angereichert mit Ausrichtungs-Linsen, Ziel-Routing (Session/Bot/Kanban) und
 pro-Session-State. Läuft komplett lokal gegen einen Ollama-Endpoint.
